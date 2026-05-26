@@ -1,0 +1,81 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
+import numpy as np
+import joblib
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
+# ==========================================
+# LOAD TRAINED MODEL
+# ==========================================
+
+model = joblib.load("transformer_model.pkl")
+
+# ==========================================
+# CREATE FASTAPI INSTANCE
+# ==========================================
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # later replace with frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# ==========================================
+# INPUT DATA SCHEMA
+# ==========================================
+
+class TransformerInput(BaseModel):
+    BDV: float
+    Tan_Delta: float
+    Insulation_Resistance: float
+    Capacitance_Variation: float
+    Polarization_Index: float
+    DDF: float
+
+# ==========================================
+# ROOT ENDPOINT
+# ==========================================
+
+@app.get("/")
+def home():
+    return {
+        "message": "Transformer AI Backend Running"
+    }
+
+# ==========================================
+# PREDICTION ENDPOINT
+# ==========================================
+
+@app.post("/predict")
+def predict(data: TransformerInput):
+
+    # Convert frontend data into ML array
+    input_data = np.array([[
+        data.BDV,
+        data.Tan_Delta,
+        data.Insulation_Resistance,
+        data.Capacitance_Variation,
+        data.Polarization_Index,
+        data.DDF
+    ]])
+
+    # AI prediction
+    prediction = model.predict(input_data)[0]
+
+    # Status mapping
+    status_map = {
+        0: "EXCELLENT",
+        1: "GOOD",
+        2: "MARGINAL",
+        3: "POOR",
+        4: "CRITICAL"
+    }
+
+    return {
+        "prediction": int(prediction),
+        "status": status_map[prediction]
+    }

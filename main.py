@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 from fastapi.middleware.cors import CORSMiddleware
 from rag.chatbot import ask_rag
+from typing import Optional
 
 
 
@@ -39,8 +40,8 @@ class TransformerInput(BaseModel):
 
 class ChatRequest(BaseModel):
     question: str
-    status: str
-    inputs: dict
+    status: Optional[str] = None
+    inputs: Optional[dict] = None
 
 # ==========================================
 # ROOT ENDPOINT
@@ -97,7 +98,11 @@ def predict(data: TransformerInput):
 @app.post("/chat")
 def chat(data: ChatRequest):
 
-    answer = ask_rag(data.question)
+    answer = ask_rag(
+        question=data.question,
+        status=data.status,
+        inputs=data.inputs
+    )
 
     return {
         "answer": answer

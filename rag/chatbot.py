@@ -57,19 +57,11 @@ llm = ChatGoogleGenerativeAI(
     google_api_key=os.getenv("GOOGLE_API_KEY")
 )
 
-prompt = PromptTemplate(
+normal_prompt = PromptTemplate(
     template="""
 You are an expert transformer insulation engineer.
 
-Use all retrieved context to answer.
-
-If information appears across multiple chunks,
-combine it into a complete answer.
-
-If the answer cannot be found,
-say so explicitly.
-
-Context:
+Retrieved Context:
 {context}
 
 Question:
@@ -77,10 +69,41 @@ Question:
 
 Answer:
 """,
-    input_variables=["context", "question"]
+    input_variables=[
+        "context",
+        "question"
+    ]
 )
 
-def ask_rag(question: str):
+prediction_prompt = PromptTemplate(
+    template="""
+You are an expert transformer insulation engineer.
+
+Transformer Status:
+{status}
+
+Transformer Measurements:
+{inputs}
+
+Retrieved Context:
+{context}
+
+Question:
+{question}
+
+Use both the transformer measurements and the retrieved context to answer.
+
+Answer:
+""",
+    input_variables=[
+        "status",
+        "inputs",
+        "context",
+        "question"
+    ]
+)
+
+def ask_rag(question, status=None, inputs=None):
 
     docs = retriever.invoke(question)
 
@@ -88,10 +111,18 @@ def ask_rag(question: str):
         doc.page_content for doc in docs
     )
 
-    prompt_text = prompt.format(
-        context=context,
-        question=question
-    )
+    if status and inputs:
+        prompt_text = prediction_prompt.format(
+            status=status,
+            inputs=inputs,
+            context=context,
+            question=question
+        )
+    else:
+        prompt_text = normal_prompt.format(
+            context=context,
+            question=question
+        )
 
     response = llm.invoke(prompt_text)
 

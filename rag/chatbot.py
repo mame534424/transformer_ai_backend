@@ -10,36 +10,14 @@ import os
 
 load_dotenv()
 
-# Load PDFs
 
-BASE_DIR = Path(__file__).resolve().parent
-
-pdf1 = BASE_DIR / "data" / "RAG_TRANSFORMER1.pdf"
-pdf2 = BASE_DIR / "data" / "RAG_TRANSFORMER2.pdf"
-
-loader1 = PyPDFLoader(str(pdf1))
-loader2 = PyPDFLoader(str(pdf2))
-
-documents = loader1.load() + loader2.load()
-
-# Split
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200
-)
-
-chunks = splitter.split_documents(documents)
-
-# Embeddings
 embeddings = HuggingFaceEmbeddings(
     model_name="BAAI/bge-small-en"
 )
 
-# Chroma
-vectorstore = Chroma.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-    persist_directory="./chroma_db"
+vectorstore = Chroma(
+    persist_directory="./chroma_db",
+    embedding_function=embeddings
 )
 
 # Retriever
